@@ -15,4 +15,3 @@ mailing_list_url:
 calendar_url: seminar.ics
 submit_url:
 github_url:
-hero_image: assets/seminar-room.jpg

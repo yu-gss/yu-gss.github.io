@@ -15,7 +15,6 @@ type site = {
   calendar_url : string;
   submit_url : string;
   github_url : string;
-  hero_image : string;
 }
 
 type talk = {
@@ -115,7 +114,6 @@ let parse_site path =
     calendar_url = get "calendar_url" "";
     submit_url = get "submit_url" "";
     github_url = get "github_url" "";
-    hero_image = get "hero_image" "assets/seminar-room.jpg";
   }
 
 let split_tabs line = String.split_on_char '\t' line
@@ -185,9 +183,6 @@ let escape_html s =
     s;
   Buffer.contents buffer
 
-let attr name value =
-  if value = "" then "" else sprintf " %s=\"%s\"" name (escape_html value)
-
 let safe_text = escape_html
 
 let is_iso_date date =
@@ -227,17 +222,6 @@ let display_date date =
   match parse_iso_date date with
   | Some (year, month, day) -> sprintf "%s %d, %d" (month_name month) day year
   | None -> if date = "" then "TBA" else date
-
-let render_date_box date =
-  match parse_iso_date date with
-  | Some (year, month, day) ->
-      sprintf
-        {|<div class="talk-date"><span class="month">%s</span><strong>%02d</strong><span class="year">%d</span></div>|}
-        (month_name month) day year
-  | None ->
-      sprintf
-        {|<div class="talk-date"><span class="month">Date</span><strong>%s</strong><span class="year">TBA</span></div>|}
-        (safe_text (if date = "" then "TBA" else date))
 
 let today_iso () =
   let tm = Unix.localtime (Unix.time ()) in
@@ -302,22 +286,24 @@ let render_status status =
   if status = "" then "" else sprintf {|<span class="badge">%s</span>|} (safe_text status)
 
 let render_talk_card talk =
+  let date_attr =
+    match parse_iso_date talk.date with
+    | Some _ -> sprintf {| datetime="%s"|} (safe_text talk.date)
+    | None -> ""
+  in
   sprintf
     {|<li>
   <article class="talk-card">
+    <div class="talk-topline"><time%s>%s</time>%s</div>
+    <h3>%s</h3>
+    <p class="speaker-line">%s</p>
+    <p class="abstract">%s</p>
     %s
-    <div class="talk-body">
-      <div class="talk-topline">%s<span>%s</span></div>
-      <h3>%s</h3>
-      <p class="speaker-line">%s</p>
-      <p>%s</p>
-      %s
-    </div>
   </article>
 </li>|}
-    (render_date_box talk.date)
-    (render_status talk.status)
+    date_attr
     (safe_text (display_date talk.date))
+    (render_status talk.status)
     (safe_text talk.title) (speaker_line talk) (safe_text talk.abstract)
     (render_material_links talk)
 
@@ -364,20 +350,22 @@ let layout site ~active ~title body =
 </head>
 <body>
   <header class="site-header">
-    <a class="brand" href="index.html" aria-label="%s home">
-      <span class="brand-mark">%s</span>
-      <span class="brand-name">%s</span>
-    </a>
-    <nav class="site-nav" aria-label="Main navigation">
-      %s
-      %s
-      %s
-      %s
-    </nav>
+    <div class="wrap site-header-inner">
+      <a class="brand" href="index.html" aria-label="%s home">
+        <span class="brand-mark">%s</span>
+        <span class="brand-name">%s</span>
+      </a>
+      <nav class="site-nav" aria-label="Main navigation">
+        %s
+        %s
+        %s
+        %s
+      </nav>
+    </div>
   </header>
   %s
   <footer class="site-footer">
-    <div class="footer-inner">
+    <div class="wrap footer-inner">
       <span>%s</span>
       <span>%s</span>
     </div>
@@ -475,19 +463,17 @@ let home_page site talks =
   let upcoming = upcoming_talks talks in
   let body =
     sprintf
-      {|<main>
-  <section class="hero">
-    <img src="%s" alt="">
-    <div class="hero-content">
-      <p class="eyebrow">%s</p>
-      <h1>%s</h1>
-      <div class="hero-meta">
-        <span>%s</span>
-        <span>%s</span>
-      </div>
-    </div>
+      {|<main class="wrap page-main">
+  <section class="intro">
+    <p class="kicker">%s</p>
+    <h1>%s</h1>
+    <p>%s</p>
+    <dl class="seminar-facts">
+      <div><dt>Meets</dt><dd>%s</dd></div>
+      <div><dt>Location</dt><dd>%s</dd></div>
+    </dl>
   </section>
-  <div class="wrap main-grid">
+  <div class="main-grid">
     <div>
       %s
       <section class="upcoming-section">
@@ -504,7 +490,7 @@ let home_page site talks =
     %s
   </div>
 </main>|}
-      (safe_text site.hero_image) (safe_text site.term) (safe_text site.name)
+      (safe_text site.term) (safe_text site.name) (safe_text site.description)
       (safe_text site.meeting_time) (safe_text site.location)
       (render_next_panel site (first_upcoming talks))
       (safe_text site.description)

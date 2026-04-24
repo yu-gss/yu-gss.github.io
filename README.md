@@ -9,8 +9,7 @@ HTML and CSS, generated from small text files by a dependency-free OCaml program
   basic department information.
 - `data/talks.tsv` has the schedule. Keep the header row and separate columns
   with tabs.
-- `assets/styles.css` controls the visual design.
-- `assets/seminar-room.jpg` is the homepage banner image.
+- `assets/styles.css` controls the deliberately plain visual design.
 
 ## Build Locally
 
