@@ -1,0 +1,18 @@
+# Edit these values for the seminar.
+# Use "key: value". Leave a value blank to hide that link/action.
+
+name: Graduate Student Seminar
+short_name: GSS
+term: Fall 2026
+meeting_time: Fridays, 3:00 PM
+location: Room TBA
+department: Department Name
+university: University Name
+timezone: America/New_York
+description: A student-run seminar for graduate students to share research, workshop ideas, and practice clear technical talks.
+email: organizers@example.edu
+mailing_list_url:
+calendar_url: seminar.ics
+submit_url:
+github_url:
+hero_image: assets/seminar-room.jpg
