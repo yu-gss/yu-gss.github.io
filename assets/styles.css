@@ -4,9 +4,9 @@ body {
   padding: 32px 48px;
   color: #111;
   background: #fff;
-  font-family: "Lucida Console", Monaco, monospace;
-  font-size: 17px;
-  line-height: 1.5;
+  font-family: Georgia, "Times New Roman", Times, serif;
+  font-size: 18px;
+  line-height: 1.55;
 }
 
 a {
