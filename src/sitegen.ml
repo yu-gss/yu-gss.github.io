@@ -10,7 +10,10 @@ type site = {
   university : string;
   timezone : string;
   description : string;
-  email : string;
+  format : string;
+  audience : string;
+  organizers : string;
+  emails : string list;
   mailing_list_url : string;
   calendar_url : string;
   submit_url : string;
@@ -78,6 +81,12 @@ let split_kv line =
       else Some (k2, v2)
   | None, None -> None
 
+let split_list value =
+  value |> String.split_on_char ','
+  |> List.concat_map (String.split_on_char ';')
+  |> List.map String.trim
+  |> List.filter (( <> ) "")
+
 let parse_site path =
   let pairs =
     read_lines path
@@ -105,7 +114,14 @@ let parse_site path =
     description =
       get "description"
         "A student-run seminar for graduate students to share research and ideas.";
-    email = get "email" "";
+    format =
+      get "format"
+        "Finished research, early ideas, practice talks, paper walkthroughs, or methods sessions.";
+    audience =
+      get "audience"
+        "Graduate students first; visitors welcome when talks are open to the department.";
+    organizers = get "organizers" "";
+    emails = get "email" "" |> split_list;
     mailing_list_url = get "mailing_list_url" "";
     calendar_url = get "calendar_url" "";
     submit_url = get "submit_url" "";
@@ -264,11 +280,11 @@ let optional_link label url =
   if url = "" then None
   else Some (sprintf {|<a href="%s">%s</a>|} (escape_html url) (safe_text label))
 
-let required_mail_link site =
-  if site.email = "" then None
-  else Some (sprintf {|<a href="mailto:%s">email</a>|} (escape_html site.email))
+let email_link email =
+  sprintf {|<a href="mailto:%s">%s</a>|} (escape_html email) (safe_text email)
 
 let join_with_bars links = String.concat " | " links
+let join_with_commas links = String.concat ", " links
 
 let render_materials talk =
   let links =
@@ -338,7 +354,10 @@ let render_links site =
   [
     optional_link "calendar" site.calendar_url;
     optional_link "mailing list" site.mailing_list_url;
-    required_mail_link site;
+    (match site.emails with
+    | [] -> None
+    | [ email ] -> Some (email_link email)
+    | emails -> Some (emails |> List.map email_link |> join_with_bars));
     optional_link "propose a talk" site.submit_url;
     optional_link "github" site.github_url;
   ]
@@ -346,6 +365,18 @@ let render_links site =
   |> function
   | [] -> {|<p class="quiet">Links TBA.</p>|}
   | links -> sprintf {|<p>%s</p>|} (join_with_bars links)
+
+let render_organizers site =
+  let contacts =
+    match site.emails with
+    | [] -> ""
+    | emails -> emails |> List.map email_link |> join_with_commas
+  in
+  match site.organizers with
+  | "" when contacts = "" -> "TBA"
+  | "" -> contacts
+  | organizers when contacts = "" -> safe_text organizers
+  | organizers -> sprintf "%s (%s)" (safe_text organizers) contacts
 
 let layout site body =
   sprintf
@@ -399,8 +430,8 @@ let home_page site talks =
 <hr>
 <h2 id="about">about</h2>
 <p>%s</p>
-<p><b>format:</b> finished research, early ideas, practice talks, paper walkthroughs, or methods sessions.</p>
-<p><b>audience:</b> graduate students first; visitors welcome when talks are open to the department.</p>
+<p><b>format:</b> %s</p>
+<p><b>audience:</b> %s</p>
 <p><b>organizers:</b> %s</p>
 
 <hr>
@@ -417,7 +448,7 @@ let home_page site talks =
       (render_schedule_table "No upcoming talks are listed yet." upcoming)
       (render_talk_dl "No archived talks yet." archived)
       (safe_text site.description)
-      (match required_mail_link site with Some link -> link | None -> "TBA")
+      (safe_text site.format) (safe_text site.audience) (render_organizers site)
       (render_links site) (safe_text site.department) (safe_text site.university)
   in
   layout site body

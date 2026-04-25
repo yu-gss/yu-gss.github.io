@@ -1,5 +1,6 @@
 # Edit these values for the seminar.
 # Use "key: value". Leave a value blank to hide that link/action.
+# Multiple email addresses can be separated with commas or semicolons.
 
 name: Graduate Student Seminar
 short_name: GSS
@@ -9,9 +10,12 @@ location: Room TBA
 department: Graduate Mathematical Sciences and Computer Science
 university: Yeshiva University
 timezone: America/New_York
-description: Research seminar for graduate students to share ongoing and completed research. 
+description: Research seminar for graduate students to share ongoing and completed research.
+format: Finished research, early ideas, practice talks, paper walkthroughs, or methods sessions.
+audience: Graduate students first; visitors welcome when talks are open to the department.
+organizers: Aditya Dutta and Mehul Bafna
 email: adutta1@mail.yu.edu,mbafna@mail.yu.edu
 mailing_list_url:
 calendar_url: seminar.ics
 submit_url:
-github_url:
+github_url: https://github.com/yu-gss/yu-gss.github.io

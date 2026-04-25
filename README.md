@@ -6,11 +6,29 @@ dependency-free OCaml program.
 
 ## What to Edit
 
-- `data/site.txt` has the seminar name, term, meeting time, contact links, and
-  basic department information.
+- `data/site.txt` has the seminar name, term, meeting time, organizers, contact
+  links, and basic department information.
 - `data/talks.tsv` has the schedule. Keep the header row and separate columns
   with tabs.
 - `assets/styles.css` controls the deliberately sparse visual design.
+
+`email:` in `data/site.txt` can contain one address or a comma-separated list.
+
+Common `data/site.txt` fields:
+
+```text
+name: Site title
+term: Current term
+meeting_time: Weekly meeting time
+location: Room, Zoom, or TBA
+description: One-sentence description
+format: Talk format shown in the about section
+audience: Audience note shown in the about section
+organizers: Organizer names
+email: organizer1@example.edu,organizer2@example.edu
+calendar_url: seminar.ics
+github_url: https://github.com/yu-gss/yu-gss.github.io
+```
 
 ## Build Locally
 
@@ -32,11 +50,20 @@ Then open `http://localhost:8000`.
 
 ## Deploy on GitHub Pages
 
-1. Create a new GitHub repository.
-2. Push this project to the repository's `main` branch.
-3. In GitHub, open repository settings and enable Pages with GitHub Actions as
-   the source.
-4. The included workflow builds the OCaml generator and publishes `dist/`.
+The live site is:
+
+```text
+https://yu-gss.github.io/
+```
+
+The repository is:
+
+```text
+https://github.com/yu-gss/yu-gss.github.io
+```
+
+Push changes to `main`. The included workflow builds the OCaml generator,
+publishes `dist/` to the `gh-pages` branch, and GitHub Pages serves that branch.
 
 The site stays free to host on GitHub Pages as long as it fits GitHub's Pages
 terms and limits.
