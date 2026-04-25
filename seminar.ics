@@ -1,0 +1,32 @@
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Graduate Student Seminar//Seminar Website//EN
+CALSCALE:GREGORIAN
+METHOD:PUBLISH
+X-WR-CALNAME:Graduate Student Seminar
+X-WR-TIMEZONE:America/New_York
+BEGIN:VEVENT
+UID:20260904-organizational-meeting@graduate-student-seminar
+DTSTAMP:20260425T040225Z
+DTSTART;VALUE=DATE:20260904
+SUMMARY:Organizational meeting
+LOCATION:Room TBA
+DESCRIPTION:Speaker: GSS Organizers\n\nWe will introduce the seminar\, pick themes for the term\, and collect speaker preferences.
+END:VEVENT
+BEGIN:VEVENT
+UID:20260918-student-research-talk@graduate-student-seminar
+DTSTAMP:20260425T040225Z
+DTSTART;VALUE=DATE:20260918
+SUMMARY:Student research talk
+LOCATION:Room TBA
+DESCRIPTION:Speaker: TBA\n\nTitle and abstract will be posted once the speaker is confirmed.
+END:VEVENT
+BEGIN:VEVENT
+UID:20261002-methods-session@graduate-student-seminar
+DTSTAMP:20260425T040225Z
+DTSTART;VALUE=DATE:20261002
+SUMMARY:Methods session
+LOCATION:Room TBA
+DESCRIPTION:Speaker: TBA\n\nAn informal session on a method\, tool\, or paper chosen by the seminar group.
+END:VEVENT
+END:VCALENDAR
