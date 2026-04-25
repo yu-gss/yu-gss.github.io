@@ -30,7 +30,6 @@ type talk = {
 }
 
 let output_dir = "dist"
-
 let ( // ) = Filename.concat
 
 let read_lines path =
@@ -63,24 +62,21 @@ let split_once ch s =
   | None -> None
   | Some idx ->
       let left = String.sub s 0 idx in
-      let right =
-        String.sub s (idx + 1) (String.length s - idx - 1)
-      in
+      let right = String.sub s (idx + 1) (String.length s - idx - 1) in
       Some (left, right)
+
+let normalize_key key =
+  key |> String.trim |> String.lowercase_ascii
+  |> String.map (function '-' | ' ' -> '_' | c -> c)
 
 let split_kv line =
   match (split_once ':' line, split_once '=' line) with
   | Some (k, v), None -> Some (k, v)
   | None, Some (k, v) -> Some (k, v)
   | Some (k1, v1), Some (k2, v2) ->
-      let colon_idx = String.length k1 in
-      let equals_idx = String.length k2 in
-      if colon_idx <= equals_idx then Some (k1, v1) else Some (k2, v2)
+      if String.length k1 <= String.length k2 then Some (k1, v1)
+      else Some (k2, v2)
   | None, None -> None
-
-let normalize_key key =
-  key |> String.trim |> String.lowercase_ascii
-  |> String.map (function '-' | ' ' -> '_' | c -> c)
 
 let parse_site path =
   let pairs =
@@ -258,20 +254,25 @@ let first_upcoming talks =
 let speaker_line talk =
   match (talk.speaker, talk.affiliation) with
   | "", "" -> ""
-  | speaker, "" -> safe_text speaker
-  | "", affiliation -> safe_text affiliation
-  | speaker, affiliation -> sprintf "%s, %s" (safe_text speaker) (safe_text affiliation)
-
-let plain_speaker_line talk =
-  match (talk.speaker, talk.affiliation) with
-  | "", "" -> ""
   | speaker, "" -> speaker
   | "", affiliation -> affiliation
   | speaker, affiliation -> sprintf "%s, %s" speaker affiliation
 
-let render_material_links talk =
+let html_speaker_line talk = speaker_line talk |> safe_text
+
+let optional_link label url =
+  if url = "" then None
+  else Some (sprintf {|<a href="%s">%s</a>|} (escape_html url) (safe_text label))
+
+let required_mail_link site =
+  if site.email = "" then None
+  else Some (sprintf {|<a href="mailto:%s">email</a>|} (escape_html site.email))
+
+let join_with_bars links = String.concat " | " links
+
+let render_materials talk =
   let links =
-    (if talk.url = "" then [] else [ ("Details", talk.url) ]) @ talk.materials
+    (if talk.url = "" then [] else [ ("details", talk.url) ]) @ talk.materials
   in
   match links with
   | [] -> ""
@@ -279,65 +280,74 @@ let render_material_links talk =
       links
       |> List.map (fun (label, url) ->
              sprintf {|<a href="%s">%s</a>|} (escape_html url) (safe_text label))
-      |> String.concat "\n"
-      |> sprintf {|<div class="talk-links">%s</div>|}
+      |> join_with_bars
+      |> sprintf "<br>%s"
 
 let render_status status =
-  if status = "" then "" else sprintf {|<span class="badge">%s</span>|} (safe_text status)
+  if status = "" then "" else sprintf " (%s)" (safe_text status)
 
-let render_talk_card talk =
-  let date_attr =
-    match parse_iso_date talk.date with
-    | Some _ -> sprintf {| datetime="%s"|} (safe_text talk.date)
-    | None -> ""
+let render_talk_detail talk =
+  let location =
+    if talk.location = "" then "" else sprintf "<br>%s" (safe_text talk.location)
   in
   sprintf
-    {|<li>
-  <article class="talk-card">
-    <div class="talk-topline"><time%s>%s</time>%s</div>
-    <h3>%s</h3>
-    <p class="speaker-line">%s</p>
-    <p class="abstract">%s</p>
-    %s
-  </article>
-</li>|}
-    date_attr
+    {|<dt><time%s>%s</time>%s</dt>
+<dd><b>%s</b><br>%s<br>%s%s%s</dd>|}
+    (match parse_iso_date talk.date with
+    | Some _ -> sprintf {| datetime="%s"|} (safe_text talk.date)
+    | None -> "")
     (safe_text (display_date talk.date))
     (render_status talk.status)
-    (safe_text talk.title) (speaker_line talk) (safe_text talk.abstract)
-    (render_material_links talk)
+    (safe_text talk.title) (html_speaker_line talk) (safe_text talk.abstract)
+    location (render_materials talk)
 
-let render_talk_list ?(limit = max_int) empty_message talks =
-  let talks =
-    talks |> List.mapi (fun idx talk -> (idx, talk))
-    |> List.filter (fun (idx, _) -> idx < limit)
-    |> List.map snd
-  in
+let render_talk_dl empty_message talks =
   match talks with
-  | [] -> sprintf {|<div class="empty">%s</div>|} (safe_text empty_message)
+  | [] -> sprintf {|<p class="quiet">%s</p>|} (safe_text empty_message)
+  | _ -> talks |> List.map render_talk_detail |> String.concat "\n" |> sprintf "<dl>%s</dl>"
+
+let render_schedule_table empty_message talks =
+  match talks with
+  | [] -> sprintf {|<p class="quiet">%s</p>|} (safe_text empty_message)
   | _ ->
-      talks |> List.map render_talk_card |> String.concat "\n"
-      |> sprintf {|<ul class="talk-list">%s</ul>|}
+      let rows =
+        talks
+        |> List.map (fun talk ->
+               let speaker = speaker_line talk in
+               let location =
+                 if talk.location = "" then "" else sprintf "<br>%s" (safe_text talk.location)
+               in
+               sprintf
+                 {|<tr><td>%s</td><td>%s</td><td><b>%s</b><br>%s%s</td><td>%s</td></tr>|}
+                 (safe_text (display_date talk.date))
+                 (safe_text speaker)
+                 (safe_text talk.title) (safe_text talk.abstract) location
+                 (safe_text talk.status))
+        |> String.concat "\n"
+      in
+      sprintf
+        {|<table>
+<thead><tr><th>Date</th><th>Speaker</th><th>Talk</th><th>Status</th></tr></thead>
+<tbody>
+%s
+</tbody>
+</table>|}
+        rows
 
-let contact_link site =
-  if site.email = "" then ""
-  else sprintf {|<a href="mailto:%s">Email organizers</a>|} (escape_html site.email)
+let render_links site =
+  [
+    optional_link "calendar" site.calendar_url;
+    optional_link "mailing list" site.mailing_list_url;
+    required_mail_link site;
+    optional_link "propose a talk" site.submit_url;
+    optional_link "github" site.github_url;
+  ]
+  |> List.filter_map Fun.id
+  |> function
+  | [] -> {|<p class="quiet">Links TBA.</p>|}
+  | links -> sprintf {|<p>%s</p>|} (join_with_bars links)
 
-let optional_action label url =
-  if url = "" then "" else sprintf {|<a class="button" href="%s">%s</a>|} (escape_html url) label
-
-let optional_list_item label url =
-  if url = "" then ""
-  else sprintf {|<li><a href="%s">%s</a></li>|} (escape_html url) label
-
-let nav_link active href label =
-  let current = if active = href then {| aria-current="page"|} else "" in
-  sprintf {|<a href="%s"%s>%s</a>|} href current label
-
-let layout site ~active ~title body =
-  let page_title =
-    if title = site.name then site.name else sprintf "%s - %s" title site.name
-  in
+let layout site body =
   sprintf
     {|<!doctype html>
 <html lang="en">
@@ -349,228 +359,68 @@ let layout site ~active ~title body =
   <link rel="stylesheet" href="assets/styles.css">
 </head>
 <body>
-  <header class="site-header">
-    <div class="wrap site-header-inner">
-      <a class="brand" href="index.html" aria-label="%s home">
-        <span class="brand-mark">%s</span>
-        <span class="brand-name">%s</span>
-      </a>
-      <nav class="site-nav" aria-label="Main navigation">
-        %s
-        %s
-        %s
-        %s
-      </nav>
-    </div>
-  </header>
-  %s
-  <footer class="site-footer">
-    <div class="wrap footer-inner">
-      <span>%s</span>
-      <span>%s</span>
-    </div>
-  </footer>
+%s
 </body>
 </html>
 |}
-    (safe_text site.description) (safe_text page_title) (safe_text site.name)
-    (safe_text site.short_name) (safe_text site.name)
-    (nav_link active "index.html" "Home")
-    (nav_link active "schedule.html" "Schedule")
-    (nav_link active "archive.html" "Archive")
-    (nav_link active "about.html" "About")
-    body (safe_text site.department) (safe_text site.university)
-
-let render_next_panel site talk_opt =
-  match talk_opt with
-  | None ->
-      sprintf
-        {|<section class="panel next-panel">
-  <p class="kicker">Next seminar</p>
-  <h2>Schedule coming soon</h2>
-  <dl class="details">
-    <div class="detail-row"><dt>Time</dt><dd>%s</dd></div>
-    <div class="detail-row"><dt>Location</dt><dd>%s</dd></div>
-  </dl>
-  <p class="abstract">%s</p>
-</section>|}
-        (safe_text site.meeting_time) (safe_text site.location)
-        (safe_text site.description)
-  | Some talk ->
-      let location = if talk.location = "" then site.location else talk.location in
-      sprintf
-        {|<section class="panel next-panel">
-  <p class="kicker">Next seminar</p>
-  <h2>%s</h2>
-  <p class="speaker-line">%s</p>
-  <dl class="details">
-    <div class="detail-row"><dt>Date</dt><dd>%s</dd></div>
-    <div class="detail-row"><dt>Time</dt><dd>%s</dd></div>
-    <div class="detail-row"><dt>Location</dt><dd>%s</dd></div>
-  </dl>
-  <p class="abstract">%s</p>
-  <div class="actions">
-    %s
-    %s
-    %s
-  </div>
-</section>|}
-        (safe_text talk.title) (speaker_line talk)
-        (safe_text (display_date talk.date))
-        (safe_text site.meeting_time) (safe_text location)
-        (safe_text talk.abstract)
-        (optional_action "Full schedule" "schedule.html")
-        (optional_action "Add calendar" site.calendar_url)
-        (optional_action "Propose a talk" site.submit_url)
-
-let render_resource_sections site =
-  let items =
-    [
-      optional_list_item "Join mailing list" site.mailing_list_url;
-      optional_list_item "Add seminar calendar" site.calendar_url;
-      optional_list_item "Propose a talk" site.submit_url;
-      (if site.email = "" then ""
-       else
-         sprintf {|<li><a href="mailto:%s">Email organizers</a></li>|}
-           (escape_html site.email));
-      optional_list_item "GitHub repository" site.github_url;
-    ]
-    |> List.filter (( <> ) "")
-  in
-  let links =
-    match items with
-    | [] -> sprintf {|<p>%s</p>|} (safe_text site.description)
-    | _ -> sprintf {|<ul class="link-list">%s</ul>|} (String.concat "\n" items)
-  in
-  sprintf
-    {|<section class="link-panel">
-    <p class="kicker">%s</p>
-    <h2>%s</h2>
-    <p>%s</p>
-  </section>
-  <section class="link-panel">
-    <p class="kicker">Links</p>
-    <h2>Organizer resources</h2>
-    %s
-  </section>|}
-    (safe_text site.term) (safe_text site.meeting_time) (safe_text site.location)
-    links
-
-let render_side_panel site =
-  sprintf {|<aside class="side-stack">%s</aside>|} (render_resource_sections site)
+    (safe_text site.description) (safe_text site.name) body
 
 let home_page site talks =
   let upcoming = upcoming_talks talks in
-  let body =
-    sprintf
-      {|<main class="wrap page-main">
-  <section class="intro">
-    <p class="kicker">%s</p>
-    <h1>%s</h1>
-    <p>%s</p>
-    <dl class="seminar-facts">
-      <div><dt>Meets</dt><dd>%s</dd></div>
-      <div><dt>Location</dt><dd>%s</dd></div>
-    </dl>
-  </section>
-  <div class="main-grid">
-    <div>
-      %s
-      <section class="upcoming-section">
-        <div class="section-head">
-          <div>
-            <h2>Upcoming talks</h2>
-            <p>%s</p>
-          </div>
-          <a class="button" href="schedule.html">View all</a>
-        </div>
-        %s
-      </section>
-    </div>
-    %s
-  </div>
-</main>|}
-      (safe_text site.term) (safe_text site.name) (safe_text site.description)
-      (safe_text site.meeting_time) (safe_text site.location)
-      (render_next_panel site (first_upcoming talks))
-      (safe_text site.description)
-      (render_talk_list ~limit:4 "No upcoming talks are listed yet." upcoming)
-      (render_side_panel site)
-  in
-  layout site ~active:"index.html" ~title:site.name body
-
-let schedule_page site talks =
-  let upcoming = upcoming_talks talks in
-  let body =
-    sprintf
-      {|<main class="wrap page-main">
-  <div class="page-title">
-    <h1>Schedule</h1>
-    <p>%s - %s at %s.</p>
-  </div>
-  %s
-</main>|}
-      (safe_text site.term) (safe_text site.meeting_time) (safe_text site.location)
-      (render_talk_list "No upcoming talks are listed yet." upcoming)
-  in
-  layout site ~active:"schedule.html" ~title:"Schedule" body
-
-let archive_page site talks =
   let archived = archived_talks talks in
+  let next =
+    match first_upcoming talks with
+    | None -> {|<p class="quiet">Schedule coming soon.</p>|}
+    | Some talk -> render_talk_dl "Schedule coming soon." [ talk ]
+  in
   let body =
     sprintf
-      {|<main class="wrap page-main">
-  <div class="page-title">
-    <h1>Archive</h1>
-    <p>Past talks and materials from %s.</p>
-  </div>
-  %s
-</main>|}
-      (safe_text site.name)
-      (render_talk_list "No archived talks yet." archived)
-  in
-  layout site ~active:"archive.html" ~title:"Archive" body
+      {|<header>
+  <h1>%s</h1>
+  <p>%s</p>
+  <p>%s<br>%s</p>
+  <nav class="links">
+    <a href="#next">next</a> | <a href="#schedule">schedule</a> | <a href="#archive">archive</a> | <a href="#about">about</a> | <a href="#links">links</a>
+  </nav>
+</header>
 
-let about_page site _talks =
-  let contact =
-    match contact_link site with
-    | "" -> "Contact details TBA."
-    | link -> link
+<hr>
+<h2 id="next">next</h2>
+%s
+
+<hr>
+<h2 id="schedule">schedule</h2>
+%s
+
+<hr>
+<h2 id="archive">archive</h2>
+%s
+
+<hr>
+<h2 id="about">about</h2>
+<p>%s</p>
+<p><b>format:</b> finished research, early ideas, practice talks, paper walkthroughs, or methods sessions.</p>
+<p><b>audience:</b> graduate students first; visitors welcome when talks are open to the department.</p>
+<p><b>organizers:</b> %s</p>
+
+<hr>
+<h2 id="links">links</h2>
+%s
+
+<hr>
+<footer class="quiet">%s | %s</footer>
+|}
+      (safe_text site.name) (safe_text site.description)
+      (safe_text site.term)
+      (safe_text (sprintf "%s, %s" site.meeting_time site.location))
+      next
+      (render_schedule_table "No upcoming talks are listed yet." upcoming)
+      (render_talk_dl "No archived talks yet." archived)
+      (safe_text site.description)
+      (match required_mail_link site with Some link -> link | None -> "TBA")
+      (render_links site) (safe_text site.department) (safe_text site.university)
   in
-  let body =
-    sprintf
-      {|<main class="wrap page-main">
-  <div class="page-title">
-    <h1>About</h1>
-    <p>%s</p>
-  </div>
-  <div class="about-grid">
-    <div class="about-copy">
-      <section class="panel">
-        <p class="kicker">Format</p>
-        <h2>Student-run, low overhead</h2>
-        <p>Talks can be finished research, early ideas, practice conference talks, paper walkthroughs, or methods sessions.</p>
-      </section>
-      <section class="panel">
-        <p class="kicker">Audience</p>
-        <h2>Graduate students first</h2>
-        <p>The seminar is built around graduate student participation, but visitors are welcome when a talk is open to the department.</p>
-      </section>
-    </div>
-    <aside class="side-stack">
-      <section class="link-panel">
-        <p class="kicker">Organizers</p>
-        <h2>%s</h2>
-        <p>%s</p>
-      </section>
-      %s
-    </aside>
-  </div>
-</main>|}
-      (safe_text site.description) (safe_text site.short_name) contact
-      (render_resource_sections site)
-  in
-  layout site ~active:"about.html" ~title:"About" body
+  layout site body
 
 let slugify s =
   let buffer = Buffer.create (String.length s) in
@@ -624,7 +474,7 @@ let generate_ics site talks =
              let date = compact_date talk.date in
              let location = if talk.location = "" then site.location else talk.location in
              let description =
-               sprintf "Speaker: %s\n\n%s" (plain_speaker_line talk) talk.abstract
+               sprintf "Speaker: %s\n\n%s" (speaker_line talk) talk.abstract
              in
              sprintf
                {|BEGIN:VEVENT
@@ -663,8 +513,5 @@ let () =
   ensure_dir output_dir;
   write_file (output_dir // ".nojekyll") "";
   write_file (output_dir // "index.html") (home_page site talks);
-  write_file (output_dir // "schedule.html") (schedule_page site talks);
-  write_file (output_dir // "archive.html") (archive_page site talks);
-  write_file (output_dir // "about.html") (about_page site talks);
   write_file (output_dir // "404.html") (home_page site talks);
   generate_ics site talks

@@ -1,7 +1,8 @@
 # Graduate Student Seminar Website
 
-A minimal static website for a graduate student seminar. The public site is plain
-HTML and CSS, generated from small text files by a dependency-free OCaml program.
+A tiny static website for a graduate student seminar. The public site is one
+plain HTML page plus a small CSS file, generated from text files by a
+dependency-free OCaml program.
 
 ## What to Edit
 
@@ -9,7 +10,7 @@ HTML and CSS, generated from small text files by a dependency-free OCaml program
   basic department information.
 - `data/talks.tsv` has the schedule. Keep the header row and separate columns
   with tabs.
-- `assets/styles.css` controls the deliberately plain visual design.
+- `assets/styles.css` controls the deliberately sparse visual design.
 
 ## Build Locally
 
