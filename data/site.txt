@@ -6,11 +6,11 @@ short_name: GSS
 term: Fall 2026
 meeting_time: Fridays, 3:00 PM
 location: Room TBA
-department: Garduate Mathematical Sciences and Computer Science 
+department: Graduate Mathematical Sciences and Computer Science
 university: Yeshiva University
 timezone: America/New_York
 description: Research seminar for graduate students to share ongoing and completed research. 
-email: adutta1@mail.yu.edu and mbafna@mail.yu.edu
+email: adutta1@mail.yu.edu,mbafna@mail.yu.edu
 mailing_list_url:
 calendar_url: seminar.ics
 submit_url:
