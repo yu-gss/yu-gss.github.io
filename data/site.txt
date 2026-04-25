@@ -13,7 +13,7 @@ timezone: America/New_York
 description: Research seminar for graduate students to share ongoing and completed research.
 format: Finished research, early ideas, practice talks, paper walkthroughs, or methods sessions.
 audience: Graduate students first; visitors welcome when talks are open to the department.
-organizers: Aditya Dutta and Mehul Bafna
+organizers: Arya Dutta and Mehul Bafna
 email: adutta1@mail.yu.edu,mbafna@mail.yu.edu
 mailing_list_url:
 calendar_url: seminar.ics
